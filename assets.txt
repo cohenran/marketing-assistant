@@ -1,0 +1,12 @@
+# Visual assets you HAVE — one per line, "type: description".
+# Drafts end with SUGGESTED VISUAL: picking from this list.
+# >>> Swap these for the real screenshots/videos you actually have. <<<
+# Don't have one yet? Keep it listed as a reminder to capture it.
+
+screenshot: home screen showing the 4-match limit
+screenshot: a quest / mini-game in progress (the icebreaker)
+screenshot: "see who liked you" screen
+screenshot: a real chat that started from a game (faces/names blurred)
+video (15s): playing a quest with a match
+gif: swipe pile shrinking from hundreds down to 4
+photo: founder headshot (for LinkedIn / personal posts)

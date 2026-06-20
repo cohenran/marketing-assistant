@@ -1,0 +1,16 @@
+# Brand voice — how YOU write. Drafts mimic this tone.
+# >>> REPLACE the lines below with YOUR real voice. <<<
+# The single best thing you can do: paste 2-3 things you've ACTUALLY written
+# (a tweet, a text, a message). Real samples beat any description.
+# See VOICE-AND-ASSETS.md for the full prompt.
+
+Tone: playful, a little cheeky, honest. I don't take dating apps too seriously.
+Sentence style: short and punchy. Plain words.
+Never use: "revolutionary", "soulmate", "the one", "game-changer", corporate buzzwords.
+How I talk about swiping: I poke fun at it, never mean about other apps.
+
+Things I'd actually write (replace with your own real lines):
+- "Swiping is a part-time job nobody applied for."
+- "I built DuoQuest because matching should feel like play, not paperwork."
+- "Fewer matches, more actual conversations. Revolutionary, I know."
+- "Turns out the best icebreaker isn't 'hey' — it's a quick game together."

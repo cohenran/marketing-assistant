@@ -1,0 +1,13 @@
+# Audience pain points — real frustrations in real words.
+# >>> Replace/expand with what YOUR users and reviews actually say. <<<
+# Best sources: your churn/cancellation survey answers, app-store reviews of
+# Tinder/Bumble/Hinge, messages from your users, what friends complain about.
+# One observation per line.
+
+Swiping for hours and matching with no one worth talking to.
+Matches just disappear — conversations die or end in ghosting.
+Too many matches at once means real attention goes to none of them.
+Conversations are dead on arrival — nobody knows how to start past "hey".
+Dating apps feel like a chore, a second job.
+People want dating to feel playful and human, not transactional.
+Endless swiping is exhausting and makes people feel like a product.
