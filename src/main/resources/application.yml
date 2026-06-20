@@ -44,6 +44,11 @@ app:
   anthropic:
     model: claude-opus-4-8
 
+  # Optional stock photos appended to each draft. Leave api-key empty to disable.
+  pexels:
+    api-key: ${PEXELS_API_KEY:}
+    per-page: 3
+
   # ---- Channels. cadence-days controls auto-generation: ----
   #   7  = weekly,  14 = biweekly,  30 = monthly,  90 = quarterly
   #   0  = manual only (one-shot launches) — generate with --run-now="Channel Name"

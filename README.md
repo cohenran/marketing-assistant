@@ -38,6 +38,7 @@ Cadence is `cadence-days` per channel: `7/14/30/90`, or `0` = manual-only.
    export ANTHROPIC_API_KEY=sk-ant-...
    export MAIL_USERNAME=you@gmail.com
    export MAIL_PASSWORD=your-16-char-app-password
+   export PEXELS_API_KEY=...        # optional — appends stock-photo options to each draft
    ```
 
 ## Smoke test (no Gmail needed)

@@ -19,6 +19,7 @@ public record AppProperties(
         String assetsFile,
         Product product,
         Anthropic anthropic,
+        Pexels pexels,
         List<ChannelTarget> channels
 ) {
     /** Facts about your app — the source material every draft is built from. */
@@ -31,4 +32,7 @@ public record AppProperties(
     ) {}
 
     public record Anthropic(String model) {}
+
+    /** Optional stock-photo lookup. Disabled when apiKey is blank. */
+    public record Pexels(String apiKey, int perPage) {}
 }

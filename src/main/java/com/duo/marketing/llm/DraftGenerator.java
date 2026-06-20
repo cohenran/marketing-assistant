@@ -6,19 +6,22 @@ import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.duo.marketing.channel.ChannelTarget;
 import com.duo.marketing.config.AppProperties;
+import com.duo.marketing.images.PexelsClient;
+import com.duo.marketing.images.PexelsImage;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.IntStream;
 
 /**
- * Generates marketing copy for ONE channel via the Anthropic API (claude-opus-4-8).
+ * Generates marketing copy for ONE channel via the Anthropic API (claude-opus-4-8),
+ * then (if Pexels is configured) appends suggested stock photos.
  * The client reads ANTHROPIC_API_KEY from the environment (fromEnv()).
  *
  * Grounded in: product brief + your pain-point notes + your brand voice + your asset
- * inventory + the last few posts already generated for this channel (so the new draft
- * is materially different — not repetitive/spammy). Honest founder voice, no fake claims.
- * Output is a draft for YOU to edit and post manually — the app never posts.
+ * inventory + the last few posts for this channel (so the new draft is materially
+ * different). Honest founder voice, no fake claims. Output is a draft for YOU to edit
+ * and post manually — the app never posts.
  */
 @Service
 public class DraftGenerator {
@@ -33,20 +36,24 @@ public class DraftGenerator {
             3. Be honest. No fabricated stats, fake testimonials, or manipulative urgency.
             4. Ground the copy in the product facts and the audience pain points provided.
             5. Match the requested channel format and tone EXACTLY.
-            6. Always include the product link as a clear, low-pressure call to action.
+            6. Include the product link EXACTLY as given, verbatim, as a clear call to action.
             7. If previous posts for this channel are shown, make this one materially
                DIFFERENT — new angle, new hook, fresh phrasing. Never rehash them.
-            8. End with one line: "SUGGESTED VISUAL: <which listed asset to attach and why>".
-               If no assets are listed, suggest what to capture instead.
-            9. Return only the ready-to-paste draft (then the SUGGESTED VISUAL line) — no
-               preamble, no "here is your draft", no meta commentary.
+            8. After the post, add a line: "SUGGESTED VISUAL: <which listed asset to attach>".
+               If no assets are listed, suggest what to capture.
+            9. Then add a final line: "IMAGE SEARCH: <2-4 keyword stock-photo query>" — the
+               search terms for a relevant stock photo for this post.
+            10. Return only the draft, then the SUGGESTED VISUAL line, then the IMAGE SEARCH
+                line. No preamble, no meta commentary.
             """;
 
     private final AppProperties props;
+    private final PexelsClient pexels;
     private final AnthropicClient client = AnthropicOkHttpClient.fromEnv();
 
-    public DraftGenerator(AppProperties props) {
+    public DraftGenerator(AppProperties props, PexelsClient pexels) {
         this.props = props;
+        this.pexels = pexels;
     }
 
     public ChannelDraft generate(ChannelTarget channel,
@@ -67,7 +74,7 @@ public class DraftGenerator {
                 - Tagline: %s
                 - What it is: %s
                 - Pricing: %s
-                - Link (use as the call to action): %s
+                - Link (include EXACTLY, verbatim, as the call to action): %s
 
                 Audience pain points (the founder's own notes):
                 %s
@@ -97,7 +104,7 @@ public class DraftGenerator {
         );
 
         MessageCreateParams params = MessageCreateParams.builder()
-                .model(props.anthropic().model())                   // "claude-opus-4-8"
+                .model(props.anthropic().model())   // "claude-opus-4-8"
                 .maxTokens(4000)
                 .system(SYSTEM)
                 .addUserMessage(userMsg)
@@ -107,7 +114,42 @@ public class DraftGenerator {
 
         StringBuilder sb = new StringBuilder();
         message.content().forEach(block -> block.text().ifPresent(t -> sb.append(t.text())));
-        return new ChannelDraft(channel.name(), sb.toString().trim());
+        String text = sb.toString().trim();
+
+        return new ChannelDraft(channel.name(), appendStockImages(text));
+    }
+
+    /** Reads the model's "IMAGE SEARCH:" line, queries Pexels, appends photo options. */
+    private String appendStockImages(String text) {
+        if (!pexels.enabled()) {
+            return text;
+        }
+        String query = extractImageQuery(text);
+        List<PexelsImage> images = pexels.search(query);
+        if (images.isEmpty()) {
+            return text;
+        }
+        StringBuilder b = new StringBuilder(text);
+        b.append("\n\nSTOCK IMAGE OPTIONS (Pexels — query: \"").append(query).append("\"):");
+        int i = 1;
+        for (PexelsImage img : images) {
+            b.append("\n").append(i++).append(". ").append(img.url())
+                    .append("   (photo by ").append(img.photographer())
+                    .append(" — ").append(img.pageUrl()).append(")");
+        }
+        b.append("\n(Pexels requires crediting the photographer when you use a photo.)");
+        return b.toString();
+    }
+
+    private String extractImageQuery(String text) {
+        for (String line : text.split("\\R")) {
+            String t = line.trim();
+            if (t.regionMatches(true, 0, "IMAGE SEARCH:", 0, "IMAGE SEARCH:".length())) {
+                String q = t.substring("IMAGE SEARCH:".length()).trim();
+                if (!q.isBlank()) return q;
+            }
+        }
+        return props.product().name() + " online dating connection";  // fallback query
     }
 
     private static String blankOr(String value, String fallback) {
