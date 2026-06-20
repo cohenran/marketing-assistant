@@ -26,7 +26,7 @@ app:
 
   # ---- Step 1: Pain-Point Listener (READ ONLY research) ----
   listen:
-    subreddits: [dating, Tinder, dating_advice, datingoverthirty]
+    subreddits: [dating, dating_advice, datingoverthirty, Tinder, Bumble, hingeapp, OnlineDating]
     keywords:
       - "dating app fatigue"
       - "burnt out"
