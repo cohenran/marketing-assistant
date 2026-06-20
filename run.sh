@@ -18,8 +18,6 @@ fi
 
 # Sanity check the required vars are present before starting.
 : "${ANTHROPIC_API_KEY:?set ANTHROPIC_API_KEY}"
-: "${REDDIT_CLIENT_ID:?set REDDIT_CLIENT_ID}"
-: "${REDDIT_CLIENT_SECRET:?set REDDIT_CLIENT_SECRET}"
 : "${MAIL_USERNAME:?set MAIL_USERNAME}"
 : "${MAIL_PASSWORD:?set MAIL_PASSWORD}"
 

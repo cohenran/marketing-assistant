@@ -1,53 +1,74 @@
-# Transparent Growth — Reddit Marketing & Listening Assistant
+# Marketing Copy Generator
 
-Spring Boot batch app. Hourly: listens to dating subreddits for pain points (read-only
-research), generates **honest, disclosed** promo drafts via Claude for places that allow
-self-promotion, and emails you the digest. Nothing auto-posts — you review and paste.
+Spring Boot batch app. Runs daily, but each marketing channel only generates when it's
+**due** (per-channel cadence). It writes honest, channel-native drafts via Claude — in
+**your** voice, suggesting **your** screenshots, and **different from past posts** — then
+emails them to you. You edit and post manually. No Reddit, no scraping, no auto-posting.
 
 ## Pipeline
 
-1. **PainPointService** → Reddit OAuth (app-only) keyword search, score filter.
-2. **PromotionTargetService** → curated allow-list + Facebook-theme manual fallback.
-3. **DraftGenerator** → Anthropic `claude-opus-4-8`, one disclosed draft per target.
-4. **EmailService** → Gmail SMTP digest to `duodatingapplication@gmail.com`.
+1. **InputFiles** → reads your `pain-points.txt`, `voice.txt`, `assets.txt`.
+2. **MarketingJob** → daily; picks channels that are due by cadence (or forced via `--run-now`).
+3. **DraftGenerator** → Anthropic `claude-opus-4-8`; one draft per due channel, grounded in
+   brief + pain points + voice + assets + the last 3 posts for that channel (to stay fresh).
+4. **GeneratedPost (H2 DB)** → records every generated draft (history + de-dup).
+5. **EmailService** → emails the digest of what was generated this run.
+
+## Channels & cadence (`application.yml`)
+
+| Channel | Cadence |
+|---|---|
+| TikTok/Reels, Twitter/X, LinkedIn | weekly |
+| Email/Newsletter blurb | biweekly |
+| Blog (SEO), r/SideProject, Indie Hackers, Paid ad copy | monthly |
+| App Store listing | quarterly |
+| Product Hunt, Show HN | **manual only** (launches) |
+
+Cadence is `cadence-days` per channel: `7/14/30/90`, or `0` = manual-only.
 
 ## Setup
 
-### 1. Reddit app (script/confidential)
-Create at https://www.reddit.com/prefs/apps → type "script". Note the client id + secret.
-Set a real username in `app.reddit.user-agent` (Reddit blocks generic agents).
+1. **Product brief** — edit `app.product` in `application.yml` (name, **url**, tagline, …).
+   The URL is the CTA in every draft.
+2. **Your inputs** — fill `pain-points.txt`, `voice.txt`, `assets.txt`. See
+   **[VOICE-AND-ASSETS.md](VOICE-AND-ASSETS.md)** for the prompts to fill voice + assets well.
+3. **Gmail App Password** — enable 2FA, create an App Password, use as `MAIL_PASSWORD`.
+4. **Env vars:**
+   ```bash
+   export ANTHROPIC_API_KEY=sk-ant-...
+   export MAIL_USERNAME=you@gmail.com
+   export MAIL_PASSWORD=your-16-char-app-password
+   ```
 
-### 2. Gmail App Password
-Enable 2FA, then create an App Password (Google Account → Security → App passwords).
-Use that as `MAIL_PASSWORD`, not your login password.
+## Run
 
-### 3. Environment variables
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...        # read by the Anthropic SDK (fromEnv)
-export REDDIT_CLIENT_ID=...
-export REDDIT_CLIENT_SECRET=...
-export MAIL_USERNAME=you@gmail.com
-export MAIL_PASSWORD=your-16-char-app-password
+./run.sh                                   # normal: daily cron, generates due channels
+./run.sh --run-now="Product Hunt,Show HN"  # launch run: generate these now, ignore cadence
 ```
 
-### 4. Run
-```bash
-mvn spring-boot:run
-```
-Runs on the cron in `application.yml` (`0 0 * * * *` = top of every hour).
-To test immediately, temporarily set it to `0 * * * * *` (every minute) or trigger
-`MarketingJob.run()`.
+Scheduled cron is `0 0 9 * * *` (daily 09:00). On a quiet day nothing is due → no email.
 
 ## Deploy on Ubuntu
-Build `mvn clean package`, copy the jar, run under systemd with the env vars set in the
-unit file. `java -jar reddit-marketing-assistant-1.0.0.jar`.
 
-## Notes / things to verify
-- **Anthropic SDK version**: `pom.xml` pins `com.anthropic:anthropic-java` 2.9.0 — confirm
-  the latest on Maven Central and adjust. If imports don't resolve, the model package path
-  may differ between SDK majors (`com.anthropic.models.messages.*`).
-- **Reddit search**: `q` caps near 512 chars — keep the keyword list modest.
-- **Facebook**: Graph API can't read arbitrary public groups, so the app uses the
-  theme-based manual fallback (`app.facebook-themes`) instead of scraping.
-- Only post where the platform's rules explicitly allow self-promotion.
+```bash
+sudo ./deploy.sh
 ```
+For a one-shot launch run on the server:
+```bash
+java -jar /opt/marketing-assistant/reddit-marketing-assistant-1.0.0.jar --run-now="Product Hunt"
+```
+
+## How the de-dup works
+
+Each run, the generator is shown the last 3 drafts for that channel and told to write
+something materially different. History lives in the H2 file DB under `data/`. This is how
+"rewrite per place / don't repeat" is enforced — every post is fresh.
+
+## Notes / verify
+- `pain-points.txt`, `voice.txt`, `assets.txt`, and `data/` are **git-ignored** (your
+  personal content + DB). Keep `.example` copies if you want them tracked.
+- **Anthropic SDK version**: `pom.xml` pins `com.anthropic:anthropic-java` 2.9.0 — confirm
+  latest on Maven Central; package path is `com.anthropic.models.messages.*`.
+- Binds **no port** — safe alongside your dating app.
+- Generation only. Editing and posting stay 100% manual — the app never posts anywhere.

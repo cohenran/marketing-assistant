@@ -1,19 +1,16 @@
 package com.duo.marketing.email;
 
 import com.duo.marketing.config.AppProperties;
-import com.duo.marketing.llm.PromoDraft;
-import com.duo.marketing.reddit.RedditPost;
+import com.duo.marketing.llm.ChannelDraft;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Step 4 — emails the digest: gathered pain points, the approved target URLs,
- * and the exact copy-paste drafts.
+ * Emails the weekly digest of ready-to-paste marketing drafts.
  */
 @Service
 public class EmailService {
@@ -26,39 +23,26 @@ public class EmailService {
         this.props = props;
     }
 
-    public void sendDigest(List<RedditPost> painPoints, List<PromoDraft> drafts) {
+    public void sendDigest(List<ChannelDraft> drafts) {
         SimpleMailMessage msg = new SimpleMailMessage();
         msg.setFrom(props.emailFrom());
         msg.setTo(props.emailTo());
-        msg.setSubject("Transparent Growth digest — " +
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
-        msg.setText(buildBody(painPoints, drafts));
+        msg.setSubject("Marketing drafts — " + props.product().name() + " — " + LocalDate.now());
+        msg.setText(buildBody(drafts));
         mailSender.send(msg);
     }
 
-    private String buildBody(List<RedditPost> painPoints, List<PromoDraft> drafts) {
+    private String buildBody(List<ChannelDraft> drafts) {
         StringBuilder b = new StringBuilder();
+        b.append("Ready-to-paste marketing drafts for ").append(props.product().name()).append(".\n");
+        b.append("Review, tweak, and post where each belongs.\n");
 
-        b.append("=== PAIN POINTS (market research — do not reply to these) ===\n\n");
-        if (painPoints.isEmpty()) {
-            b.append("No matching posts this run.\n");
-        } else {
-            for (RedditPost p : painPoints) {
-                b.append("• [").append(p.score()).append(" pts] r/").append(p.subreddit())
-                        .append(" — ").append(p.title()).append("\n  ").append(p.url()).append("\n");
-            }
-        }
-
-        b.append("\n\n=== APPROVED PROMO DRAFTS (copy-paste where self-promo is allowed) ===\n");
-        for (PromoDraft d : drafts) {
-            b.append("\n----------------------------------------\n");
-            b.append("TARGET : ").append(d.targetName()).append("\n");
-            b.append("URL    : ").append(d.url()).append("\n");
-            b.append("----------------------------------------\n");
+        for (ChannelDraft d : drafts) {
+            b.append("\n========================================\n");
+            b.append("CHANNEL: ").append(d.channelName()).append("\n");
+            b.append("========================================\n");
             b.append(d.text()).append("\n");
         }
-
-        b.append("\n\nReminder: only post where the platform's rules explicitly allow self-promotion.\n");
         return b.toString();
     }
 }

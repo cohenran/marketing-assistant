@@ -4,50 +4,42 @@ import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.messages.Message;
 import com.anthropic.models.messages.MessageCreateParams;
-import com.anthropic.models.messages.ThinkingConfigAdaptive;
+import com.duo.marketing.channel.ChannelTarget;
 import com.duo.marketing.config.AppProperties;
-import com.duo.marketing.promo.PromotionTarget;
-import com.duo.marketing.reddit.RedditPost;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
- * Step 3 — draft generation via the Anthropic API (claude-opus-4-8).
+ * Generates marketing copy for ONE channel via the Anthropic API (claude-opus-4-8).
  * The client reads ANTHROPIC_API_KEY from the environment (fromEnv()).
  *
- * Every draft is honest and transparent: it opens by disclosing that the author
- * built the app. No impersonating an organic commenter, no hidden marketing.
+ * Grounded in: product brief + your pain-point notes + your brand voice + your asset
+ * inventory + the last few posts already generated for this channel (so the new draft
+ * is materially different — not repetitive/spammy). Honest founder voice, no fake claims.
+ * Output is a draft for YOU to edit and post manually — the app never posts.
  */
 @Service
 public class DraftGenerator {
 
-    private static final Logger log = LoggerFactory.getLogger(DraftGenerator.class);
-
     private static final String SYSTEM = """
-            You write transparent, founder-voice promotional posts for a new dating app.
+            You are a marketing copywriter for an app founder. You write honest,
+            engaging, channel-native promotional copy.
 
-            The app's angle: it limits each user to 4 matches at a time, to push people
-            toward fewer, deeper connections instead of endless swiping.
-
-            Hard rules — follow all of them:
-            1. OPEN WITH A DISCLOSURE. The first line must make it obvious the author built
-               the app, e.g. "I built a dating app to fix X...". Never pose as a neutral user.
-            2. Be honest. No fake stats, no invented testimonials, no manipulative urgency.
-            3. Ground the copy in the REAL pain points provided, but do NOT quote or identify
-               any individual Reddit user. Speak to the shared frustration, not a person.
-            4. Tailor format and tone to the target platform:
-               - REDDIT: conversational, humble, community-first. Include a title line.
-               - FORUM (Indie Hackers / Hacker News): builder-to-builder, factual, what you
-                 made and why. For Hacker News start the title with "Show HN:".
-               - FACEBOOK_GROUP: warm, plain language, respect the group's purpose.
-            5. Invite feedback, don't hard-sell. One clear, low-pressure call to action.
-            6. Keep it tight. Provide a ready-to-paste post: a TITLE line (if the platform
-               uses titles) then the BODY. No preamble, no meta commentary.
+            Rules:
+            1. Founder voice — write as the person who built the app ("I built...").
+            2. If a brand voice sample is provided, match its tone, rhythm, and vocabulary.
+            3. Be honest. No fabricated stats, fake testimonials, or manipulative urgency.
+            4. Ground the copy in the product facts and the audience pain points provided.
+            5. Match the requested channel format and tone EXACTLY.
+            6. Always include the product link as a clear, low-pressure call to action.
+            7. If previous posts for this channel are shown, make this one materially
+               DIFFERENT — new angle, new hook, fresh phrasing. Never rehash them.
+            8. End with one line: "SUGGESTED VISUAL: <which listed asset to attach and why>".
+               If no assets are listed, suggest what to capture instead.
+            9. Return only the ready-to-paste draft (then the SUGGESTED VISUAL line) — no
+               preamble, no "here is your draft", no meta commentary.
             """;
 
     private final AppProperties props;
@@ -57,44 +49,57 @@ public class DraftGenerator {
         this.props = props;
     }
 
-    public List<PromoDraft> generate(List<RedditPost> painPoints, List<PromotionTarget> targets) {
-        String painSummary = summarize(painPoints);
-        List<PromoDraft> drafts = new ArrayList<>();
-        for (PromotionTarget target : targets) {
-            try {
-                drafts.add(new PromoDraft(target.name(), target.url(), callModel(target, painSummary)));
-            } catch (Exception e) {
-                log.warn("Draft generation failed for {}: {}", target.name(), e.getMessage());
-                drafts.add(new PromoDraft(target.name(), target.url(),
-                        "[draft generation failed: " + e.getMessage() + "]"));
-            }
-        }
-        return drafts;
-    }
+    public ChannelDraft generate(ChannelTarget channel,
+                                 String painPoints,
+                                 String voice,
+                                 String assets,
+                                 List<String> pastPosts) {
+        AppProperties.Product p = props.product();
+        String pastBlock = pastPosts.isEmpty()
+                ? "(none yet — this is the first post for this channel)"
+                : IntStream.range(0, pastPosts.size())
+                    .mapToObj(i -> "--- previous #" + (i + 1) + " ---\n" + pastPosts.get(i))
+                    .reduce((a, b) -> a + "\n\n" + b).orElse("");
 
-    private String callModel(PromotionTarget target, String painSummary) {
         String userMsg = """
-                Target: %s
-                Platform: %s
-                Posting notes: %s
+                Product:
+                - Name: %s
+                - Tagline: %s
+                - What it is: %s
+                - Pricing: %s
+                - Link (use as the call to action): %s
 
-                Real pain points gathered from dating subreddits (research only — do not quote
-                or identify anyone, just use the themes to ground the copy):
+                Audience pain points (the founder's own notes):
                 %s
 
-                Write one ready-to-paste promotional post for this target, following all rules.
+                Brand voice to mimic:
+                %s
+
+                Available visual assets (suggest which to attach):
+                %s
+
+                Channel: %s
+                Required format: %s
+                Channel notes: %s
+
+                Previously generated posts for THIS channel (make the new one clearly different):
+                %s
+
+                Write one ready-to-paste %s draft following all rules.
                 """.formatted(
-                target.name(),
-                target.platform(),
-                target.notes() == null ? "(none)" : target.notes(),
-                painSummary.isBlank() ? "(no posts gathered this run — write from the general theme of dating app fatigue)" : painSummary
+                p.name(), p.tagline(), p.description(), p.pricing(), p.url(),
+                blankOr(painPoints, "(none provided — work from the product facts and the anti-swiping angle)"),
+                blankOr(voice, "(none provided — use a natural, honest founder voice)"),
+                blankOr(assets, "(none listed — suggest a screenshot/video to capture)"),
+                channel.name(), channel.format(), channel.notes() == null ? "(none)" : channel.notes(),
+                pastBlock,
+                channel.name()
         );
 
         MessageCreateParams params = MessageCreateParams.builder()
-                .model(props.anthropic().model())          // "claude-opus-4-8"
+                .model(props.anthropic().model())                   // "claude-opus-4-8"
                 .maxTokens(4000)
                 .system(SYSTEM)
-                .thinking(ThinkingConfigAdaptive.builder().build())  // adaptive thinking
                 .addUserMessage(userMsg)
                 .build();
 
@@ -102,14 +107,10 @@ public class DraftGenerator {
 
         StringBuilder sb = new StringBuilder();
         message.content().forEach(block -> block.text().ifPresent(t -> sb.append(t.text())));
-        return sb.toString().trim();
+        return new ChannelDraft(channel.name(), sb.toString().trim());
     }
 
-    /** Compact, de-identified summary: title + score + link, capped to keep the prompt small. */
-    private String summarize(List<RedditPost> posts) {
-        return posts.stream()
-                .limit(15)
-                .map(p -> "- (%d pts, r/%s) %s".formatted(p.score(), p.subreddit(), p.title()))
-                .collect(Collectors.joining("\n"));
+    private static String blankOr(String value, String fallback) {
+        return (value == null || value.isBlank()) ? fallback : value;
     }
 }

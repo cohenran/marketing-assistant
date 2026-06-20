@@ -1,33 +1,33 @@
 package com.duo.marketing.config;
 
-import com.duo.marketing.promo.PromotionTarget;
+import com.duo.marketing.channel.ChannelTarget;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.List;
 
 /**
  * All tunables live in application.yml under the "app" prefix.
- * Constructor binding (records) keeps config immutable.
+ * Inputs are your own files: pain points, brand voice, and available visual assets.
  */
 @ConfigurationProperties(prefix = "app")
 public record AppProperties(
         String scheduleCron,
         String emailTo,
         String emailFrom,
-        Reddit reddit,
-        Listen listen,
+        String painPointsFile,
+        String voiceFile,
+        String assetsFile,
+        Product product,
         Anthropic anthropic,
-        List<PromotionTarget> promotionTargets,
-        List<String> facebookThemes
+        List<ChannelTarget> channels
 ) {
-    public record Reddit(String clientId, String clientSecret, String userAgent) {}
-
-    public record Listen(
-            List<String> subreddits,
-            List<String> keywords,
-            int minScore,
-            int postLimit,
-            String window
+    /** Facts about your app — the source material every draft is built from. */
+    public record Product(
+            String name,
+            String tagline,
+            String url,
+            String description,
+            String pricing
     ) {}
 
     public record Anthropic(String model) {}

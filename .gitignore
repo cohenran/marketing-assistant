@@ -1,8 +1,13 @@
-# Secrets — never commit
+# Secrets & personal inputs — never commit
 *.env
 .env
 src/main/resources/application-local.yml
 pain-points.txt
+voice.txt
+assets.txt
+
+# Local database (generated-post history)
+data/
 
 # Build output
 target/
