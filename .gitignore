@@ -9,6 +9,9 @@ assets.txt
 # Local database (generated-post history)
 data/
 
+# Smoke-test output
+smoke-test-output.txt
+
 # Build output
 target/
 

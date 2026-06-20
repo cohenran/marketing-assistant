@@ -30,4 +30,4 @@ if [[ ! -f "$JAR" ]]; then
 fi
 
 echo "Starting marketing assistant..."
-exec java -jar "$JAR"
+exec java -jar "$JAR" "$@"

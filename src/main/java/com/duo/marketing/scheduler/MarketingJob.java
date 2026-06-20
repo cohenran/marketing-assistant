@@ -22,7 +22,7 @@ import java.util.Set;
 /**
  * Orchestration. Runs on the cron and auto-picks which channels are DUE (per each
  * channel's cadenceDays + when it was last generated). Also supports a manual run
- * for one-shot channels via --run-now (see StartupRunner).
+ * for one-shot channels via --run-now, and a no-email --dry-run (see StartupRunner).
  */
 @Component
 public class MarketingJob {
@@ -44,19 +44,39 @@ public class MarketingJob {
         this.repo = repo;
     }
 
-    /** Scheduled run — generates only the channels that are due by cadence. */
+    /** Scheduled run — generates only the channels that are due by cadence, then emails. */
     @Scheduled(cron = "${app.schedule-cron}")
     public void scheduledRun() {
         execute(Set.of());
     }
 
     /**
+     * Generate due channels and email the digest.
+     *
      * @param forced channel names to generate regardless of cadence. Empty = cadence-driven
      *               (scheduler). Non-empty = generate ONLY those channels (manual launch run).
      */
     public void execute(Set<String> forced) {
         log.info("=== Marketing run starting (forced={}) ===", forced);
+        List<ChannelDraft> drafts = generateDue(forced, true);
+        if (drafts.isEmpty()) {
+            log.info("=== Nothing due this run — no email sent ===");
+            return;
+        }
+        email.sendDigest(drafts);
+        log.info("=== Run complete: {} channel drafts emailed ===", drafts.size());
+    }
 
+    /**
+     * Generate without emailing or persisting — for the smoke test / dry run.
+     * Always pass explicit channel names in {@code forced} so it produces output
+     * regardless of cadence.
+     */
+    public List<ChannelDraft> generateOnly(Set<String> forced) {
+        return generateDue(forced, false);
+    }
+
+    private List<ChannelDraft> generateDue(Set<String> forced, boolean persist) {
         String pains = inputs.painPoints();
         String voice = inputs.voice();
         String assets = inputs.assets();
@@ -70,22 +90,18 @@ public class MarketingJob {
                     .stream().map(GeneratedPost::getText).toList();
 
             ChannelDraft draft = generator.generate(channel, pains, voice, assets, past);
-            repo.save(new GeneratedPost(channel.name(), draft.text(), Instant.now()));
+            if (persist) {
+                repo.save(new GeneratedPost(channel.name(), draft.text(), Instant.now()));
+            }
             drafts.add(draft);
-            log.info("Generated draft for channel '{}'", channel.name());
+            log.info("Generated draft for channel '{}'{}", channel.name(), persist ? "" : " (dry run)");
         }
-
-        if (drafts.isEmpty()) {
-            log.info("=== Nothing due this run — no email sent ===");
-            return;
-        }
-        email.sendDigest(drafts);
-        log.info("=== Run complete: {} channel drafts emailed ===", drafts.size());
+        return drafts;
     }
 
     private boolean isDue(ChannelTarget c, Set<String> forced) {
         if (!forced.isEmpty()) {
-            // Manual run: only the explicitly forced channels, cadence ignored.
+            // Forced run: only the named channels, cadence ignored.
             return forced.stream().anyMatch(f -> f.equalsIgnoreCase(c.name()));
         }
         // Scheduled run: skip manual-only channels, otherwise check cadence.

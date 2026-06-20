@@ -40,11 +40,22 @@ Cadence is `cadence-days` per channel: `7/14/30/90`, or `0` = manual-only.
    export MAIL_PASSWORD=your-16-char-app-password
    ```
 
+## Smoke test (no Gmail needed)
+
+Try output before setting up email — needs only `ANTHROPIC_API_KEY`:
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+./smoke-test.sh "LinkedIn"     # or no arg = first channel
+```
+Writes `smoke-test-output.txt` (and prints to console), no email, nothing saved to the DB.
+Then the app exits.
+
 ## Run
 
 ```bash
 ./run.sh                                   # normal: daily cron, generates due channels
 ./run.sh --run-now="Product Hunt,Show HN"  # launch run: generate these now, ignore cadence
+./run.sh --dry-run --run-now="TikTok / Reels scripts"   # same as smoke-test.sh
 ```
 
 Scheduled cron is `0 0 9 * * *` (daily 09:00). On a quiet day nothing is due → no email.

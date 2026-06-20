@@ -4,8 +4,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME}      # the Gmail address that sends the digest
-    password: ${MAIL_PASSWORD}      # Gmail App Password (NOT your normal password)
+    username: ${MAIL_USERNAME:}     # the Gmail address that sends the digest (empty ok for --dry-run)
+    password: ${MAIL_PASSWORD:}     # Gmail App Password (NOT your normal password)
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
@@ -26,7 +26,7 @@ app:
   # Runs DAILY at 09:00; each channel only generates when it's DUE (see cadence-days).
   schedule-cron: "0 0 9 * * *"
   email-to: duodatingapplication@gmail.com
-  email-from: ${MAIL_USERNAME}
+  email-from: ${MAIL_USERNAME:}
 
   # Your own input files (git-ignored). Edit anytime.
   pain-points-file: pain-points.txt
