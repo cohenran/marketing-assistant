@@ -1,0 +1,75 @@
+spring:
+  main:
+    web-application-type: none      # batch/scheduled app — no HTTP server
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}      # the Gmail address that sends the digest
+    password: ${MAIL_PASSWORD}      # Gmail App Password (NOT your normal password)
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+    server:
+      port: -1
+
+app:
+  # Top of every hour. (sec min hour day month weekday)
+  schedule-cron: "0 0 * * * *"
+  email-to: duodatingapplication@gmail.com
+  email-from: ${MAIL_USERNAME}
+
+  reddit:
+    client-id: ${REDDIT_CLIENT_ID}
+    client-secret: ${REDDIT_CLIENT_SECRET}
+    # Reddit requires a unique, descriptive User-Agent. Put your real reddit username.
+    user-agent: "java:duo-marketing-assistant:v1.0.0 (by /u/your_reddit_username)"
+
+  # ---- Step 1: Pain-Point Listener (READ ONLY research) ----
+  listen:
+    subreddits: [dating, Tinder, dating_advice, datingoverthirty]
+    keywords:
+      - "dating app fatigue"
+      - "burnt out"
+      - "ghosted"
+      - "ghosting"
+      - "swipe fatigue"
+      - "real connection"
+      - "tired of apps"
+      - "exhausting"
+    min-score: 5        # "highly relevant" gate — skip low-traction posts
+    post-limit: 25      # per subreddit per run
+    window: day         # search time window: hour|day|week|month|year|all
+
+  anthropic:
+    model: claude-opus-4-8
+
+  # ---- Step 2: Approved Promotion Sourcing (self-promo EXPLICITLY allowed) ----
+  promotion-targets:
+    - name: "r/SideProject"
+      url: "https://www.reddit.com/r/SideProject/submit"
+      platform: "REDDIT"
+      notes: "Self-promo and 'show your project' posts are allowed. Read sub rules before posting."
+    - name: "r/startups (Share Your Startup threads only)"
+      url: "https://www.reddit.com/r/startups/"
+      platform: "REDDIT"
+      notes: "Only post in the weekly Share Your Startup thread, not the main feed."
+    - name: "Indie Hackers"
+      url: "https://www.indiehackers.com/new-post"
+      platform: "FORUM"
+      notes: "Founders sharing products is welcome. Lead with the problem and your build."
+    - name: "Hacker News (Show HN)"
+      url: "https://news.ycombinator.com/showhn.html"
+      platform: "FORUM"
+      notes: "Title must start with 'Show HN:'. Be factual, no hype."
+
+  # ---- Note on Facebook fallback ----
+  # The Graph API cannot read arbitrary public groups. So instead of scraping,
+  # list group THEMES here; the generator still produces tailored, disclosed copy
+  # you paste manually into a matching group.
+  facebook-themes:
+    - "Singles looking for serious relationships"
+    - "Dating over 30 support"
+
+logging:
+  level:
+    com.duo.marketing: INFO

@@ -1,0 +1,17 @@
+[Unit]
+Description=Transparent Growth marketing & listening assistant
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ran
+WorkingDirectory=/opt/marketing-assistant
+# Secrets live here (chmod 600, owned by ran). Bare KEY=value lines, no export, no quotes.
+EnvironmentFile=/etc/marketing-assistant/marketing-assistant.env
+ExecStart=/usr/bin/java -jar /opt/marketing-assistant/reddit-marketing-assistant-1.0.0.jar
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
