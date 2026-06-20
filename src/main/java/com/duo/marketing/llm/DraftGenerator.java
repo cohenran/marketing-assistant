@@ -116,29 +116,20 @@ public class DraftGenerator {
         message.content().forEach(block -> block.text().ifPresent(t -> sb.append(t.text())));
         String text = sb.toString().trim();
 
-        return new ChannelDraft(channel.name(), appendStockImages(text));
-    }
-
-    /** Reads the model's "IMAGE SEARCH:" line, queries Pexels, appends photo options. */
-    private String appendStockImages(String text) {
-        if (!pexels.enabled()) {
-            return text;
-        }
+        // Pull the model's IMAGE SEARCH query, fetch photos, then drop that meta line.
         String query = extractImageQuery(text);
         List<PexelsImage> images = pexels.search(query);
-        if (images.isEmpty()) {
-            return text;
-        }
-        StringBuilder b = new StringBuilder(text);
-        b.append("\n\nSTOCK IMAGE OPTIONS (Pexels — query: \"").append(query).append("\"):");
-        int i = 1;
-        for (PexelsImage img : images) {
-            b.append("\n").append(i++).append(". ").append(img.url())
-                    .append("   (photo by ").append(img.photographer())
-                    .append(" — ").append(img.pageUrl()).append(")");
-        }
-        b.append("\n(Pexels requires crediting the photographer when you use a photo.)");
-        return b.toString();
+        String cleanText = stripImageSearchLine(text);
+
+        return new ChannelDraft(channel.name(), cleanText, images, channel.htmlPaste());
+    }
+
+    private String stripImageSearchLine(String text) {
+        return text.lines()
+                .filter(line -> !line.trim().regionMatches(true, 0, "IMAGE SEARCH:", 0, "IMAGE SEARCH:".length()))
+                .reduce((a, b) -> a + "\n" + b)
+                .orElse("")
+                .trim();
     }
 
     private String extractImageQuery(String text) {

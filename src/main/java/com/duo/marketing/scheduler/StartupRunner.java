@@ -91,6 +91,15 @@ public class StartupRunner implements ApplicationRunner {
             b.append("CHANNEL: ").append(d.channelName()).append("\n");
             b.append("========================================\n");
             b.append(d.text()).append("\n");
+            if (!d.images().isEmpty()) {
+                b.append("\nSUGGESTED IMAGES (Pexels):\n");
+                int i = 1;
+                for (var img : d.images()) {
+                    b.append(i++).append(". ").append(img.url())
+                            .append("  (photo by ").append(img.photographer())
+                            .append(" — ").append(img.pageUrl()).append(")\n");
+                }
+            }
         }
         return b.toString();
     }

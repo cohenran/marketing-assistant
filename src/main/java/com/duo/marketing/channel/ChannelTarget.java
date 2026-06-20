@@ -13,5 +13,6 @@ public record ChannelTarget(
         String name,
         String format,
         String notes,
-        int cadenceDays
+        int cadenceDays,
+        boolean htmlPaste   // true only for places that accept pasted HTML (blog, newsletter)
 ) {}

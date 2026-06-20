@@ -72,12 +72,14 @@ app:
       format: "A subject line + a short email body to your list or a newsletter sponsor slot."
       notes: "Warm, direct. One clear CTA."
       cadence-days: 14
+      html-paste: true
 
     # monthly
     - name: "Blog post (SEO)"
       format: "An SEO title + outline (H2s) + a 150-word intro. Target a 'dating app fatigue' search term."
       notes: "Helpful-first, product mentioned naturally near the end."
       cadence-days: 30
+      html-paste: true
     - name: "r/SideProject"
       format: "A Reddit title line + a humble founder post body."
       notes: "Self-promo allowed here. Community-first; read the rules before posting."
