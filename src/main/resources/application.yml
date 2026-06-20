@@ -35,9 +35,9 @@ app:
 
   # ---- Facts about your app — source material for every draft ----
   product:
-    name: "FourDates"                          # <-- rename to your app
-    tagline: "Only 4 matches at a time — dating without the swipe spiral."
-    url: "https://your-dating-app.com"         # <-- REPLACE with your real app URL
+    name: "DuoQuest"                          # <-- rename to your app
+    tagline: "Play your way to a real connection."
+    url: "https://duoquest.love"         # <-- REPLACE with your real app URL
     description: "A dating app that caps you at 4 active matches at a time, to encourage fewer, deeper connections instead of endless swiping."
     pricing: "Free to start."
 
